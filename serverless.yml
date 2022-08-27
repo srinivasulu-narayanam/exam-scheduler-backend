@@ -1,0 +1,141 @@
+service: exam-scheduler
+
+frameworkVersion: '3'
+
+custom:
+  tableName: 'examSheduler-table-${sls:stage}'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: dev
+  region: ap-south-1
+  profile: registration
+  httpApi:   
+    cors: true
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [ ExamSchedulerTable, Arn ]
+  environment:
+    EXAM_SCHEDULER_TABLE: ${self:custom.tableName}
+
+functions:
+  hello:
+    handler: handler.hello
+
+  getLookup:
+    name: getLookup
+    handler: src/lookups/index.getLookup
+    events:
+      - httpApi:
+          method: GET
+          path: /lookup/{id}
+
+  getBtechSubjects:
+    name: getBtechSubjects
+    handler: src/subjects/index.getBtechSubjects
+    events:
+      - httpApi:
+          method: GET
+          path: /btech-subjects
+
+  getBeSubjects:
+    name: getBeSubjects
+    handler: src/subjects/index.getBeSubjects
+    events:
+      - httpApi:
+          method: GET
+          path: /be-subjects
+
+  getBtechSemesterSchedule:
+    name: getBtechSemesterSchedule
+    handler: src/schedules/index.getBtechSemesterSchedule
+    events:
+      - httpApi:
+          method: GET
+          path: /btech-sem-schedule
+
+  getBeSemesterSchedule:
+    name: getBeSemesterSchedule
+    handler: src/schedules/index.getBeSemesterSchedule
+    events:
+      - httpApi:
+          method: GET
+          path: /be-sem-schedule
+
+  getBtechLabSchedule:
+    name: getBtechLabSchedule
+    handler: src/schedules/index.getBtechLabSchedule
+    events:
+      - httpApi:
+          method: GET
+          path: /btech-lab-schedule
+
+  getBeLabSchedule:
+    name: getBeLabSchedule
+    handler: src/schedules/index.getBeLabSchedule
+    events:
+      - httpApi:
+          method: GET
+          path: /be-lab-schedule
+
+  postSubjectToSchedule:
+    name: postSubjectToSchedule
+    handler: src/schedules/index.postSubjectToSchedule
+    events:
+      - httpApi:
+          method: POST
+          path: /subject-schedule
+
+  postLabToSchedule:
+    name: postLabToSchedule
+    handler: src/schedules/index.postLabToSchedule
+    events:
+      - httpApi:
+          method: POST
+          path: /lab-schedule
+
+  deleteSemesterSchedule:
+    name: deleteSemesterSchedule
+    handler: src/schedules/index.deleteSemesterSchedule
+    events:
+      - httpApi:
+          method: DELETE
+          path: /sem-schedule
+
+  deleteLabSchedule:
+    name: deleteLabSchedule
+    handler: src/schedules/index.deleteLabSchedule
+    events:
+      - httpApi:
+          method: DELETE
+          path: /lab-schedule
+
+resources:
+  Resources:
+    ExamSchedulerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.tableName}
